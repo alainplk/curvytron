@@ -22,16 +22,19 @@ const patterns = [
     '!src/client/vendor.js',
 ];
 
+const normalize = p => p.replaceAll('\\', '/');
+
 const seen = new Set();
 const files = [];
 
-for (const pattern of patterns) {
+for (const rawPattern of patterns) {
+    const pattern = normalize(rawPattern);
     if (pattern.startsWith('!')) {
         seen.add(pattern.slice(1));
         continue;
     }
     if (pattern.includes('*')) {
-        const matches = globSync(pattern, { cwd: root }).sort();
+        const matches = globSync(pattern, { cwd: root }).map(normalize).sort();
         for (const f of matches) {
             if (!seen.has(f)) { seen.add(f); files.push(f); }
         }
@@ -42,7 +45,7 @@ for (const pattern of patterns) {
 }
 
 // Drop any file that was queued before its later exclusion was registered.
-const excluded = new Set(patterns.filter(p => p.startsWith('!')).map(p => p.slice(1)));
+const excluded = new Set(patterns.filter(p => p.startsWith('!')).map(p => normalize(p.slice(1))));
 const included = files.filter(f => !excluded.has(f));
 
 const body = included.map(f => readFileSync(join(root, f), 'utf8')).join('\n');

@@ -16,12 +16,15 @@ const patterns = [
     'src/server/launcher.js',
 ];
 
+const normalize = p => p.replaceAll('\\', '/');
+
 const seen = new Set();
 const files = [];
 
-for (const pattern of patterns) {
+for (const rawPattern of patterns) {
+    const pattern = normalize(rawPattern);
     if (pattern.includes('*')) {
-        const matches = globSync(pattern, { cwd: root }).sort();
+        const matches = globSync(pattern, { cwd: root }).map(normalize).sort();
         for (const f of matches) {
             if (!seen.has(f)) { seen.add(f); files.push(f); }
         }
