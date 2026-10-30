@@ -21,6 +21,12 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Install security updates, dumb-init for clean signal & PID 1 management,
+# and remove npm/corepack from runner to eliminate unnecessary attack surface & bundled vulnerabilities
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache dumb-init && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /root/.npm
+
 # Copy package metadata and production dependencies
 COPY --chown=node:node --from=builder /app/package.json ./package.json
 COPY --chown=node:node --from=builder /app/node_modules ./node_modules
@@ -36,5 +42,13 @@ USER node
 # Expose default Curvytron port
 EXPOSE 8020
 
-# Start server
-CMD ["npm", "start"]
+# Health check to ensure the HTTP server is responsive
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8020', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
+
+# Use dumb-init as init system to reap zombies and forward SIGTERM/SIGINT cleanly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start server directly with Node (avoiding npm as PID 1)
+CMD ["node", "bin/curvytron.cjs"]
+

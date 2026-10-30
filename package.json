@@ -71,5 +71,10 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "start": "node bin/curvytron.cjs"
+  },
+  "allowScripts": {
+    "usage@0.7.1": true,
+    "esbuild@0.25.2": true,
+    "@parcel/watcher@2.5.1": true
   }
 }
